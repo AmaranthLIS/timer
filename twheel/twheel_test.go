@@ -126,6 +126,15 @@ func BenchmarkInsertDelete(b *testing.B) {
 	})
 	tw.Stop()
 }
+func BenchmarkStdlibInsertDelete(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for pb.Next() {
+			timer := time.AfterFunc(time.Second+time.Millisecond*time.Duration(r.Intn(1000)), nil)
+			timer.Stop()
+		}
+	})
+}
 
 func BenchmarkReplacement(b *testing.B) {
 	// uses resevoir sampling to randomly replace timers, so that some have a

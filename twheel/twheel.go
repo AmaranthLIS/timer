@@ -38,6 +38,7 @@ const (
 
 	cacheline = 64
 )
+
 const (
 	// states of the TimeoutWheel
 	stopped = iota
@@ -153,7 +154,7 @@ type opts struct {
 // sync.Mutex padded to a cache line to keep the locks from false sharing with each other
 type paddedMutex struct {
 	sync.Mutex
-	_pad [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
+	_ [cacheline - unsafe.Sizeof(sync.Mutex{})]byte
 }
 
 // WithTickInterval sets the frequency of ticks.
@@ -249,7 +250,8 @@ func (t *TimeoutWheel) Stop() {
 }
 
 // Schedule adds a new function to be called after some duration of time has
-// elapsed. The returned Timeout can be used to cancel calling the function.
+// elapsed. The returned Timeout can be used to cancel calling the function. If the duration falls
+// between two ticks, the latter tick is used.
 func (t *TimeoutWheel) Schedule(
 	d time.Duration,
 	expireCb func(interface{}),
@@ -272,6 +274,7 @@ func (t *TimeoutWheel) Schedule(
 	timeout.state = timeoutActive
 	out := Timeout{timeout: timeout, generation: timeout.generation}
 
+	// execute the callback now, return a Timeout that is already Stopped (generation is bumped)
 	if bucket.lastTick >= deadline {
 		t.putTimeoutLocked(timeout)
 		timeout.mtx.Unlock()
