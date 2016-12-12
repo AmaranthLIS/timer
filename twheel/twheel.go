@@ -36,7 +36,8 @@ const (
 	defaultTickInterval = time.Millisecond
 	defaultNumBuckets   = 2048
 
-	cacheline = 64
+	cacheline    = 64
+	bitsInUint64 = 64
 )
 
 const (
@@ -54,9 +55,12 @@ const (
 )
 
 var (
+	// ErrSystemStopped is returned when a user tries to schedule a timeout after stopping the
+	// timeout system.
 	ErrSystemStopped = errors.New("Timeout System is stopped")
 
-	defaultPoolSize = uint64(2 * runtime.NumCPU())
+	// 4*(NumCPU rounded down to the next power of 2.)
+	defaultPoolSize = uint64(1 << uint(findMSB(uint64(runtime.NumCPU()))+2))
 )
 
 // Timeout represents a single timeout function pending expiration.
@@ -86,7 +90,7 @@ type timeout struct {
 	expireArg interface{}
 	deadline  uint64
 
-	// list pointers for the freelist/buckets of the queue. The list is implementaed as a forward
+	// list pointers for the freelist/buckets of the queue. The list is implemented as a forward
 	// pointer and a pointer to the address of the previous next field. It is doubly linked in this
 	// manner so that removal does not require traversal. It can only be iterated in the forward.
 	next  *timeout
@@ -169,7 +173,7 @@ func WithBucketsExponent(bucketExp uint) Option {
 	}
 }
 
-// WithBucketsExponent sets the number locks in the lockpool used to lock the time buckets. If the
+// WithLocksExponent sets the number locks in the lockpool used to lock the time buckets. If the
 // number is greater than the number of buckets, the number of buckets will be used instead.
 func WithLocksExponent(lockExp uint) Option {
 	return func(opts *opts) {
@@ -401,4 +405,14 @@ func (t *TimeoutWheel) doExpired() {
 	t.state = stopped
 	t.unlockAllBuckets()
 	close(t.done)
+}
+
+// return the bit position of the most significant bit of the number passed in (base zero)
+func findMSB(value uint64) int {
+	for i, mask := bitsInUint64-1, (^uint64(0)>>1)+1; i >= 0; i, mask = i-1, mask>>1 {
+		if mask&value != 0 {
+			return int(i)
+		}
+	}
+	return -1
 }

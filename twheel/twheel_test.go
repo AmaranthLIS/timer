@@ -27,6 +27,24 @@ import (
 	"time"
 )
 
+func TestFindMSB(t *testing.T) {
+	if findMSB(2048) != 11 {
+		t.Fail()
+	}
+	if findMSB(2049) != 11 {
+		t.Fail()
+	}
+	if findMSB(0) != -1 {
+		t.Fail()
+	}
+	if findMSB(1) != 0 {
+		t.Fail()
+	}
+	if findMSB(^uint64(0)) != 63 {
+		t.Fail()
+	}
+}
+
 func TestLinkedList(t *testing.T) {
 	var list timeoutList
 
@@ -126,6 +144,7 @@ func BenchmarkInsertDelete(b *testing.B) {
 	})
 	tw.Stop()
 }
+
 func BenchmarkStdlibInsertDelete(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
