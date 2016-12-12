@@ -155,6 +155,24 @@ func BenchmarkStdlibInsertDelete(b *testing.B) {
 	})
 }
 
+func BenchmarkInsertDeleteWithPending(b *testing.B) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tw := NewTimeoutWheel(WithLocksExponent(11))
+	for i := 0; i < 8192; i++ {
+		tw.Schedule(time.Second*10+time.Millisecond*time.Duration(r.Intn(1000)), nil, nil)
+	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for pb.Next() {
+			timeout, _ := tw.Schedule(time.Second+time.Millisecond*time.Duration(r.Intn(1000)),
+				nil, nil)
+			timeout.Stop()
+		}
+	})
+	tw.Stop()
+}
+
 func BenchmarkReplacement(b *testing.B) {
 	// uses resevoir sampling to randomly replace timers, so that some have a
 	// chance of expiring
