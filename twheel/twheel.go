@@ -409,8 +409,8 @@ func (t *TimeoutWheel) doExpired() {
 
 // return the bit position of the most significant bit of the number passed in (base zero)
 func findMSB(value uint64) int {
-	for i, mask := bitsInUint64-1, (^uint64(0)>>1)+1; i >= 0; i, mask = i-1, mask>>1 {
-		if mask&value != 0 {
+	for i := bitsInUint64 - 1; i >= 0; i-- {
+		if value&(1<<uint(i)) != 0 {
 			return int(i)
 		}
 	}
