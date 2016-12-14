@@ -131,6 +131,50 @@ func TestExpire(t *testing.T) {
 	tw.Stop()
 }
 
+func TestTimeoutStop(t *testing.T) {
+	tw := NewTimeoutWheel()
+	ch := make(chan struct{})
+
+	timeout, err := tw.Schedule(20*time.Millisecond, func(_ interface{}) { close(ch) }, nil)
+	if err != nil {
+		t.Fail()
+		return
+	}
+
+	timeout.Stop()
+
+	select {
+	case <-time.After(30 * time.Millisecond):
+	case <-ch:
+		t.Fail()
+	}
+
+	if timeout.generation == timeout.timeout.generation {
+		t.Fail()
+	}
+}
+
+func TestScheduleExpired(t *testing.T) {
+	ch := make(chan struct{})
+	tw := NewTimeoutWheel()
+	tw.Stop()
+	tw.ticks = 0
+	tw.state = running
+
+	tw.buckets[0].lastTick = 1
+	timeout, _ := tw.Schedule(0, func(_ interface{}) { close(ch) }, nil)
+
+	select {
+	case <-ch:
+	default:
+		t.Fail()
+	}
+
+	if timeout.generation == timeout.timeout.generation {
+		t.Fail()
+	}
+}
+
 func BenchmarkInsertDelete(b *testing.B) {
 	tw := NewTimeoutWheel(WithLocksExponent(11))
 	b.ResetTimer()
