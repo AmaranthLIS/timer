@@ -26,9 +26,9 @@ BenchmarkInsertDelete-8         	50000000	        30.9 ns/op
 BenchmarkStdlibInsertDelete-8   	 5000000	       275 ns/op
 ```
 
-The impact of this lock contetion becomes even more apparent in actual
+The impact of this lock contention becomes even more apparent in actual
 high-performance clients. The following was taken from a client/server
-communicating over UDS:
+communicating over UNIX domain sockets:
 ```
 P50(ns):  25068 over 5m requests
 
